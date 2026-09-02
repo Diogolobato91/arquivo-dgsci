@@ -398,6 +398,8 @@ class DashboardApp {
     const vencPct = document.getElementById('kpiVencidosPct');
     const parEl = document.getElementById('kpiParados');
     const parPct = document.getElementById('kpiParadosPct');
+    const desatEl = document.getElementById('kpiDesativados');
+    const desatPct = document.getElementById('kpiDesativadosPct');
 
     if (totalEl) totalEl.textContent = kpis.total;
     if (regEl) regEl.textContent = kpis.regular;
@@ -406,6 +408,8 @@ class DashboardApp {
     if (vencPct) vencPct.textContent = `${kpis.vencidosPct}%`;
     if (parEl) parEl.textContent = kpis.parados;
     if (parPct) parPct.textContent = `${kpis.paradosPct}%`;
+    if (desatEl) desatEl.textContent = kpis.desativados;
+    if (desatPct) desatPct.textContent = `${kpis.desativadosPct}%`;
 
     this.charts.renderSituationChart(this.store, groupFilter);
     this.charts.renderNeighborhoodsChart(this.store);

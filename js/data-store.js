@@ -84,6 +84,7 @@ class DataStore {
       parados,
       paradosPct: total > 0 ? Math.round((parados / total) * 100) : 0,
       desativados,
+      desativadosPct: total > 0 ? Math.round((desativados / total) * 100) : 0,
       totalVistorias,
       vistoriasAprovadas,
       vistoriasReprovadas,
