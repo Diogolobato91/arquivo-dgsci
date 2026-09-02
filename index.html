@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DGSCI / CBMPA - Dashboard de Controle e Licenciamento</title>
+  
+  <!-- Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Leaflet Map CSS & MarkerCluster CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+
+  <!-- Chart.js & Plugins -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- Leaflet Map JS & MarkerCluster JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- SheetJS for local Excel/CSV fallback -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+  <!-- Top Application Bar -->
+  <header class="app-header">
+    <div class="header-brand">
+      <div class="brand-text">
+        <div class="brand-title-row">
+          <span class="brand-title">DGSCI</span>
+          <span class="brand-divider">|</span>
+          <span class="brand-subtitle">CBMPA</span>
+          <span class="badge-live-pulse" id="liveSyncStatus">
+            <span class="pulse-dot"></span> Sincronizado
+          </span>
+        </div>
+        <span class="brand-subtext">Departamento-Geral de Segurança Contra Incêndios e Emergências</span>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <div class="sync-meta">
+        <span class="sync-label">Última atualização:</span>
+        <span class="sync-time" id="lastSyncTime">Buscando dados...</span>
+      </div>
+      
+      <button class="btn btn-primary" id="btnSyncNow" title="Atualizar dados da planilha do Google">
+        <i data-lucide="refresh-cw" class="btn-icon"></i>
+        <span>Sincronizar Agora</span>
+      </button>
+
+      <button class="btn btn-icon-only" id="themeToggle" title="Alternar Tema Escuro/Claro">
+        <i data-lucide="sun" id="themeIcon"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main App Layout -->
+  <div class="app-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="app-sidebar">
+      <nav class="nav-menu">
+        <button class="nav-item active" data-tab="overview">
+          <i data-lucide="layout-dashboard"></i>
+          <span>Visão Geral</span>
+        </button>
+        <button class="nav-item" data-tab="map">
+          <i data-lucide="map"></i>
+          <span>Mapa Territorial</span>
+          <span class="nav-badge live" id="navBadgeMap">GPS</span>
+        </button>
+        <button class="nav-item" data-tab="companies">
+          <i data-lucide="building-2"></i>
+          <span>Estabelecimentos</span>
+          <span class="nav-count" id="navCountCompanies">0</span>
+        </button>
+        <button class="nav-item" data-tab="analytics">
+          <i data-lucide="pie-chart"></i>
+          <span>Gráficos & Estatísticas</span>
+        </button>
+        <button class="nav-item" data-tab="catalog">
+          <i data-lucide="book-open"></i>
+          <span>Catálogo CBMPA (A1-N1)</span>
+        </button>
+        <button class="nav-item" data-tab="settings">
+          <i data-lucide="settings"></i>
+          <span>Fonte de Dados & Conexão</span>
+        </button>
+      </nav>
+
+      <!-- Sidebar Status Card -->
+      <div class="sidebar-summary-card">
+        <div class="summary-header">
+          <i data-lucide="database"></i>
+          <span>Google Planilha</span>
+        </div>
+        <p class="summary-desc">Conexão direta com as 59 abas de ocupações CBMPA.</p>
+        <div class="summary-stat-row">
+          <span>Estabelecimentos:</span>
+          <strong id="sidebarTotalRecords">0</strong>
+        </div>
+        <div class="summary-source-badge">
+          <i data-lucide="check-circle-2"></i> Google Sheets Ativo
+        </div>
+      </div>
+    </aside>
+
+    <!-- Content Workspace -->
+    <main class="app-main">
+      
+      <!-- Loading Banner -->
+      <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner-container">
+          <div class="spinner"></div>
+          <h3 class="spinner-title">Conectando à Planilha da DGSCI...</h3>
+          <p class="spinner-subtitle" id="loadingProgressText">Lendo abas de cadastros, ocupações e vistorias...</p>
+        </div>
+      </div>
+
+      <!-- TAB 1: OVERVIEW -->
+      <section class="tab-content active" id="tab-overview">
+        <div class="section-header">
+          <div>
+            <h1 class="page-title">Painel Geral de Licenciamento & Fiscalização</h1>
+            <p class="page-subtitle">Indicadores consolidados e interpretados do controle de processos da DGSCI / CBMPA</p>
+          </div>
+          <div class="quick-filters">
+            <select id="overviewGroupFilter" class="form-select">
+              <option value="all">Todos os Grupos de Ocupação</option>
+              <option value="A">Grupo A - Residencial</option>
+              <option value="B">Grupo B - Hospedagem</option>
+              <option value="C">Grupo C - Comercial</option>
+              <option value="D">Grupo D - Serviços Profissionais</option>
+              <option value="E">Grupo E - Educacional</option>
+              <option value="F">Grupo F - Reunião de Público</option>
+              <option value="G">Grupo G - Serviços Automotivos</option>
+              <option value="H">Grupo H - Serviços de Saúde</option>
+              <option value="I">Grupo I - Indústria</option>
+              <option value="J">Grupo J - Depósitos</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- KPI Metrics Grid -->
+        <div class="kpi-grid">
+          <!-- Card 1: Total -->
+          <div class="kpi-card">
+            <div class="kpi-icon-box bg-blue">
+              <i data-lucide="building"></i>
+            </div>
+            <div class="kpi-info">
+              <span class="kpi-title">Total de Estabelecimentos</span>
+              <div class="kpi-number-row">
+                <span class="kpi-value" id="kpiTotalCompanies">0</span>
+              </div>
+              <span class="kpi-detail" id="kpiActiveDetails">Mapeados e normalizados</span>
+            </div>
+          </div>
+
+          <!-- Card 2: Regular/Emitido -->
+          <div class="kpi-card border-success">
+            <div class="kpi-icon-box bg-success">
+              <i data-lucide="check-circle-2"></i>
+            </div>
+            <div class="kpi-info">
+              <span class="kpi-title">Certificados Emitidos / Regulares</span>
+              <div class="kpi-number-row">
+                <span class="kpi-value text-success" id="kpiRegular">0</span>
+                <span class="kpi-badge badge-success" id="kpiRegularPct">0%</span>
+              </div>
+              <span class="kpi-detail">Licenciamento regularizado</span>
+            </div>
+          </div>
+
+          <!-- Card 3: Vencidos / Irregulares -->
+          <div class="kpi-card border-danger">
+            <div class="kpi-icon-box bg-danger">
+              <i data-lucide="alert-octagon"></i>
+            </div>
+            <div class="kpi-info">
+              <span class="kpi-title">Certificados Vencidos / Infração</span>
+              <div class="kpi-number-row">
+                <span class="kpi-value text-danger" id="kpiVencidos">0</span>
+                <span class="kpi-badge badge-danger" id="kpiVencidosPct">0%</span>
+              </div>
+              <span class="kpi-detail text-danger">Requer ação fiscalizatória</span>
+            </div>
+          </div>
+
+          <!-- Card 4: Processos Parados / A Confirmar -->
+          <div class="kpi-card border-warning">
+            <div class="kpi-icon-box bg-warning">
+              <i data-lucide="clock-alert"></i>
+            </div>
+            <div class="kpi-info">
+              <span class="kpi-title">Processos Parados / À Confirmar</span>
+              <div class="kpi-number-row">
+                <span class="kpi-value text-warning" id="kpiParados">0</span>
+                <span class="kpi-badge badge-warning" id="kpiParadosPct">0%</span>
+              </div>
+              <span class="kpi-detail">Pendências ou sem renovação</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Row 1 -->
+        <div class="charts-row">
+          <!-- Donut: Regularidade -->
+          <div class="chart-card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Situação do Licenciamento</h3>
+                <p class="card-desc">Conformidade e regularidade dos estabelecimentos</p>
+              </div>
+              <i data-lucide="pie-chart" class="card-header-icon"></i>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="chartSituation"></canvas>
+            </div>
+          </div>
+
+          <!-- Bar: Top Bairros -->
+          <div class="chart-card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Distribuição por Bairro (Belém & RMB)</h3>
+                <p class="card-desc">Concentração de estabelecimentos cadastrados</p>
+              </div>
+              <i data-lucide="map-pin" class="card-header-icon"></i>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="chartNeighborhoods"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Row 2 -->
+        <div class="charts-row">
+          <!-- Bar: Ocupações por Grupo -->
+          <div class="chart-card chart-span-2">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Distribuição por Grupo e Grau de Risco</h3>
+                <p class="card-desc">Volume de estabelecimentos por tipo de ocupação CBMPA</p>
+              </div>
+              <i data-lucide="bar-chart-3" class="card-header-icon"></i>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="chartRiskAndGroup"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: GEOSPATIAL MAP (NOVA FUNCIONALIDADE) -->
+      <section class="tab-content" id="tab-map">
+        <div class="section-header">
+          <div>
+            <h1 class="page-title flex-align gap-2">
+              <i data-lucide="map-pin" class="text-blue"></i>
+              Mapa Territorial de Estabelecimentos & Fiscalização
+            </h1>
+            <p class="page-subtitle">Visualização geográfica interativa de Belém, Ananindeua e demais municípios do Pará</p>
+          </div>
+          <div class="map-header-meta">
+            <span class="badge-live-pulse" id="mapPointsCount">0 estabelecimentos geolocalizados</span>
+          </div>
+        </div>
+
+        <!-- Map Filter Controls Bar -->
+        <div class="map-filter-toolbar mb-4">
+          <div class="map-search-row">
+            <div class="search-box">
+              <i data-lucide="search" class="search-icon"></i>
+              <input type="text" id="mapSearchInput" placeholder="Buscar no mapa por Razão Social, Bairro, Logradouro ou CNPJ..." class="form-input search-input">
+            </div>
+
+            <!-- Segmented Pill for Color Mode -->
+            <div class="map-mode-pill">
+              <span class="mode-pill-label">Colorir Marcadores:</span>
+              <button class="btn-mode-pill active" id="btnMapModeStatus" title="Colorir marcadores pela situação da licença">
+                <span class="mode-dot dot-status"></span>
+                <span>Situação</span>
+              </button>
+              <button class="btn-mode-pill" id="btnMapModeSector" title="Colorir marcadores pelos 6 Setores Operacionais do CBMPA">
+                <span class="mode-dot dot-sector"></span>
+                <span>Setores CBMPA</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="map-selects-row">
+            <div class="filter-select-wrapper">
+              <label class="filter-mini-label"><i data-lucide="shield"></i> Setor Operacional CBMPA</label>
+              <select id="mapFilterSector" class="form-select select-styled">
+                <option value="all">Todos os Setores (I a VI)</option>
+                <option value="SETOR I">🟡 SETOR I (Cidade Velha, Campina, Comércio)</option>
+                <option value="SETOR II">🔵 SETOR II (Batista Campos, Jurunas, Cremação)</option>
+                <option value="SETOR III">⚪ SETOR III (Reduto, Umarizal, Nazaré, São Brás)</option>
+                <option value="SETOR IV">🟢 SETOR IV (Marco, Canudos, Guamá, Utinga)</option>
+                <option value="SETOR V">🌸 SETOR V (Telégrafo, Sacramenta, Pedreira)</option>
+                <option value="SETOR VI">🟠 SETOR VI (Marambaia, Souza, Mangueirão, RMB)</option>
+              </select>
+            </div>
+
+            <div class="filter-select-wrapper">
+              <label class="filter-mini-label"><i data-lucide="activity"></i> Situação Cadastral</label>
+              <select id="mapFilterStatus" class="form-select select-styled">
+                <option value="all">Todas as Situações</option>
+                <option value="REGULAR">🟢 Regulares / Licenciados</option>
+                <option value="VENCIDO">🚨 Vencidos / Processo de Multa</option>
+                <option value="PARADO">🟡 Processos Parados / À Confirmar</option>
+                <option value="SEM_SISGAT">🟣 Sem Cadastro SISGAT</option>
+              </select>
+            </div>
+
+            <div class="filter-select-wrapper">
+              <label class="filter-mini-label"><i data-lucide="flame"></i> Carga & Grau de Risco</label>
+              <select id="mapFilterRisk" class="form-select select-styled">
+                <option value="all">Todos os Graus de Risco</option>
+                <option value="ALTO">🔴 Risco Alto (> 1200 MJ/m²)</option>
+                <option value="MÉDIO">🟠 Risco Médio (300 a 1200 MJ/m²)</option>
+                <option value="BAIXO">🟢 Risco Baixo (≤ 300 MJ/m²)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Map Container & Legend -->
+        <div class="map-view-card mb-6">
+          <div id="mapContainer" class="interactive-map-frame"></div>
+          
+          <!-- Floating Map Legend -->
+          <div class="map-floating-legend">
+            <div class="legend-title">🚦 Situação de Licenciamento</div>
+            <div class="legend-item"><span class="legend-dot bg-success"></span> Regular / Emitido</div>
+            <div class="legend-item"><span class="legend-dot bg-danger"></span> Vencido / Auto Infração</div>
+            <div class="legend-item"><span class="legend-dot bg-warning"></span> Processo Parado / À Confirmar</div>
+            <div class="legend-item"><span class="legend-dot bg-purple"></span> Sem SISGAT / Inconsistência</div>
+            <div class="legend-item"><span class="legend-dot bg-neutral"></span> Desativado / Baixado</div>
+          </div>
+        </div>
+
+        <!-- Section: Unlocated / Incomplete Address Queue -->
+        <div class="data-card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title text-warning flex-align gap-2">
+                <i data-lucide="map-pin-off"></i>
+                Estabelecimentos com Bairro Não Informado / Endereço Incompleto (<span id="unlocatedCountBadge">0</span>)
+              </h3>
+              <p class="card-desc">Registros que não foram plotados no mapa por falta de bairro ou logradouro na planilha (útil para correção pela equipe)</p>
+            </div>
+            <button class="btn btn-sm btn-outline" id="btnExportUnlocatedExcel">
+              <i data-lucide="download" class="btn-icon"></i>
+              <span>Exportar para Correção</span>
+            </button>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table" id="unlocatedTable">
+              <thead>
+                <tr>
+                  <th>Nº Reg.</th>
+                  <th>Razão Social / Nome Fantasia</th>
+                  <th>CNPJ / CPF</th>
+                  <th>Setor</th>
+                  <th>Endereço Registrado na Planilha</th>
+                  <th>Situação</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="unlocatedTableBody">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: COMPANIES LIST & SEARCH -->
+      <section class="tab-content" id="tab-companies">
+        <div class="section-header">
+          <div>
+            <h1 class="page-title">Cadastro de Estabelecimentos</h1>
+            <p class="page-subtitle">Consulta detalhada com interpretação automática e dados normalizados</p>
+          </div>
+          <div class="header-actions">
+            <button class="btn btn-outline" id="btnExportCompaniesExcel">
+              <i data-lucide="download" class="btn-icon"></i>
+              <span>Exportar Excel</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Filters Bar -->
+        <div class="filter-panel">
+          <div class="search-box">
+            <i data-lucide="search" class="search-icon"></i>
+            <input type="text" id="companySearchInput" placeholder="Buscar por Razão Social, CNPJ/CPF, Endereço, Protocolo..." class="form-input search-input">
+            <button class="btn-clear-search" id="btnClearSearch" title="Limpar busca">&times;</button>
+          </div>
+
+          <div class="filter-controls">
+            <select id="filterSituation" class="form-select">
+              <option value="">Todas as Situações</option>
+              <option value="REGULAR">Certificado Emitido / Regular</option>
+              <option value="VENCIDO">Certificado Vencido / Infração</option>
+              <option value="PARADO">Processos Parados / Pendentes</option>
+              <option value="SEM_SISGAT">Sem Cadastro SISGAT</option>
+              <option value="DESATIVADO">Desativado / Baixado</option>
+            </select>
+
+            <select id="filterSector" class="form-select">
+              <option value="">Todos os Setores Operacionais</option>
+            </select>
+
+            <select id="filterGroup" class="form-select">
+              <option value="">Todas as Divisões / Abas</option>
+            </select>
+
+            <select id="filterNeighborhood" class="form-select">
+              <option value="">Todos os Bairros</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="data-card">
+          <div class="table-meta-bar">
+            <span class="table-results-count" id="companyResultsCount">Exibindo 0 estabelecimentos</span>
+            <div class="pagination-controls" id="companyPagination">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table" id="companiesTable">
+              <thead>
+                <tr>
+                  <th data-sort="pasta">Nº Reg.</th>
+                  <th data-sort="razao">Razão Social / Nome Fantasia</th>
+                  <th data-sort="cnpj">CNPJ / CPF</th>
+                  <th data-sort="bairro">Bairro</th>
+                  <th data-sort="setor">Setor</th>
+                  <th data-sort="divisao">Divisão</th>
+                  <th data-sort="risco">Carga & Risco</th>
+                  <th data-sort="projeto">Proj. CBMPA</th>
+                  <th data-sort="situacao">Situação Normalizada</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="companiesTableBody">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: ADVANCED ANALYTICS -->
+      <section class="tab-content" id="tab-analytics">
+        <div class="section-header">
+          <div>
+            <h1 class="page-title">Análises Estatísticas Avançadas</h1>
+            <p class="page-subtitle">Indicadores volumétricos, cargas de incêndio e perfil das edificações</p>
+          </div>
+        </div>
+
+        <div class="charts-row mb-6">
+          <div class="chart-card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Projetos Aprovados no CBMPA</h3>
+                <p class="card-desc">Proporção de estabelecimentos com projeto aprovado</p>
+              </div>
+              <i data-lucide="file-check" class="card-header-icon"></i>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="chartProjectApproved"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Classificação por Grau de Risco</h3>
+                <p class="card-desc">Baixo, Médio e Alto Risco de Incêndio</p>
+              </div>
+              <i data-lucide="flame" class="card-header-icon"></i>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="chartRiskDistribution"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="charts-row">
+          <div class="chart-card chart-span-2">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Volume de Processos por Setor Operacional</h3>
+                <p class="card-desc">Distribuição territorial por setores da SAT/DGSCI</p>
+              </div>
+              <i data-lucide="layers" class="card-header-icon"></i>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="chartSectorDistribution"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 7: SETTINGS & DATA SOURCE -->
+      <section class="tab-content" id="tab-settings">
+        <div class="section-header">
+          <div>
+            <h1 class="page-title">Configuração da Fonte de Dados</h1>
+            <p class="page-subtitle">Gerencie o link do Google Planilhas e opções de sincronização diária</p>
+          </div>
+        </div>
+
+        <div class="settings-grid">
+          <!-- Google Sheet Settings Card -->
+          <div class="data-card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title flex-align gap-2">
+                  <i data-lucide="link" class="text-blue"></i>
+                  Conexão Google Planilhas
+                </h3>
+                <p class="card-desc">Link da planilha pública preenchida diariamente pela equipe</p>
+              </div>
+            </div>
+            <div class="card-body p-6">
+              <div class="form-group mb-4">
+                <label class="form-label">Link ou ID da Planilha:</label>
+                <input type="text" id="settingSheetUrl" class="form-input" value="https://docs.google.com/spreadsheets/d/1qQkqpifpNHuIppyWk_VWZDQvSDJ9oet3C_xRffvvgH4/edit?usp=sharing">
+                <small class="form-hint">O link deve ter permissão de leitura ("Qualquer pessoa com o link pode ver").</small>
+              </div>
+
+              <div class="form-group mb-4">
+                <label class="form-label">Intervalo de Sincronização Automática:</label>
+                <select id="settingAutoSyncInterval" class="form-select">
+                  <option value="0">Desativado (Apenas manual)</option>
+                  <option value="5">A cada 5 minutos</option>
+                  <option value="15" selected>A cada 15 minutos</option>
+                  <option value="30">A cada 30 minutos</option>
+                  <option value="60">A cada 1 hora</option>
+                </select>
+              </div>
+
+              <div class="flex gap-3">
+                <button class="btn btn-primary" id="btnSaveSheetConfig">
+                  <i data-lucide="save" class="btn-icon"></i>
+                  <span>Salvar e Sincronizar</span>
+                </button>
+                <button class="btn btn-outline" id="btnTestConnection">
+                  <i data-lucide="activity" class="btn-icon"></i>
+                  <span>Testar Conexão</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fallback Manual Upload Card -->
+          <div class="data-card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title flex-align gap-2">
+                  <i data-lucide="upload-cloud" class="text-purple"></i>
+                  Importação Manual (Backup Excel / CSV)
+                </h3>
+                <p class="card-desc">Caso a internet esteja indisponível, importe o arquivo diretamente</p>
+              </div>
+            </div>
+            <div class="card-body p-6">
+              <div class="dropzone" id="excelDropzone">
+                <i data-lucide="file-spreadsheet" class="dropzone-icon"></i>
+                <p class="dropzone-text">Arraste e solte o arquivo <strong>.xlsx</strong> ou <strong>.csv</strong> aqui</p>
+                <span class="dropzone-hint">ou clique para selecionar do computador</span>
+                <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" class="hidden">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Discovered Sheets/Tabs Information -->
+        <div class="data-card mt-6">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Abas e Ocupações Mapeadas na Conexão Atual</h3>
+              <p class="card-desc">Mapeamento dinâmico das tabelas de dados carregadas da DGSCI</p>
+            </div>
+          </div>
+          <div class="p-6">
+            <div class="tabs-tag-cloud" id="mappedTabsCloud">
+              <!-- Populated via JS -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: CATÁLOGO TÉCNICO OFICIAL CBMPA (A1 a N1) -->
+      <section class="tab-content" id="tab-catalog">
+        <div class="section-header">
+          <div>
+            <h1 class="page-title">Catálogo Oficial de Ocupações e Divisões CBMPA</h1>
+            <p class="page-subtitle">Instrução Técnica do Corpo de Bombeiros Militar do Pará — Classificação de A-1 até N-1</p>
+          </div>
+        </div>
+
+        <!-- Filter & Search Panel for Catalog -->
+        <div class="filter-panel mb-6">
+          <div class="search-box">
+            <i data-lucide="search" class="search-icon"></i>
+            <input type="text" id="catalogSearchInput" placeholder="Buscar por atividade, divisão, exemplos (ex: apart-hotéis, supermercados, boates, hospitais)..." class="form-input search-input">
+          </div>
+
+          <div class="filter-controls">
+            <select id="catalogGroupFilter" class="form-select">
+              <option value="all">Todos os Grupos (A até N)</option>
+              <option value="A">Grupo A - Residencial</option>
+              <option value="B">Grupo B - Serviço de Hospedagem</option>
+              <option value="C">Grupo C - Comercial</option>
+              <option value="D">Grupo D - Serviço Profissional</option>
+              <option value="E">Grupo E - Educacional e Cultura Física</option>
+              <option value="F">Grupo F - Local de Reunião de Público</option>
+              <option value="G">Grupo G - Serviços Automotivos</option>
+              <option value="H">Grupo H - Serviço de Saúde e Institucional</option>
+              <option value="I">Grupo I - Indústria</option>
+              <option value="J">Grupo J - Depósito</option>
+              <option value="L">Grupo L - Explosivos</option>
+              <option value="M">Grupo M - Especial</option>
+              <option value="N">Grupo N - Transportes e Cargas</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Catalog Table Card -->
+        <div class="data-card">
+          <div class="table-responsive">
+            <table class="data-table" id="cbmpaCatalogTable">
+              <thead>
+                <tr>
+                  <th style="width: 90px;">Grupo</th>
+                  <th style="width: 220px;">Ocupação / Uso</th>
+                  <th style="width: 100px;">Divisão</th>
+                  <th style="width: 320px;">Descrição Oficial</th>
+                  <th>Exemplos da Norma Técnica (CBMPA)</th>
+                </tr>
+              </thead>
+              <tbody id="cbmpaCatalogTableBody">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Modal: Dossier Detalhado do Estabelecimento -->
+  <div class="modal-backdrop" id="companyDetailModal">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <div class="flex-align gap-3">
+          <div class="modal-icon-badge">
+            <i data-lucide="building"></i>
+          </div>
+          <div>
+            <h3 class="modal-title" id="modalCompanyName">Razão Social da Empresa</h3>
+            <span class="modal-subtitle" id="modalCompanyCnpj">CNPJ: 00.000.000/0000-00</span>
+          </div>
+        </div>
+        <button class="modal-close" id="btnCloseCompanyModal">&times;</button>
+      </div>
+
+      <div class="modal-body" id="modalCompanyDetailsBody">
+        <!-- Injected dynamically -->
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="btnPrintCompanyDossier">
+          <i data-lucide="printer" class="btn-icon"></i>
+          <span>Imprimir Ficha</span>
+        </button>
+        <button class="btn btn-secondary" id="btnCloseCompanyModalBtn">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Print Template Container -->
+  <div id="printArea" class="print-only"></div>
+
+  <!-- App Scripts -->
+  <script src="js/cbmpa-divisions.js"></script>
+  <script src="js/sheets-sync.js"></script>
+  <script src="js/data-store.js"></script>
+  <script src="js/geo-map.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/table.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
