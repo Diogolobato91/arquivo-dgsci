@@ -113,4 +113,4 @@ O script consultará apenas os endereços inéditos na **Mapbox API v6** e atual
 
 ## 🏛️ Corpo de Bombeiros Militar do Pará (CBMPA)
 **Departamento-Geral de Segurança Contra Incêndios e Emergências (DGSCI)**  
-*Tecnologia e Inovação a Serviço da Segurança Pública e Proteção da Sociedade Paraense.*
+
