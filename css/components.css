@@ -333,6 +333,207 @@
   outline: none;
 }
 
+/* =========================================================================
+   STORE LOCATOR PATTERN (Mapbox GL / MapLibre GL Architecture)
+   ========================================================================= */
+
+.store-locator-card {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+.store-locator-layout {
+  display: grid;
+  grid-template-columns: 370px 1fr;
+  height: 680px;
+  position: relative;
+}
+
+@media (max-width: 992px) {
+  .store-locator-layout {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+}
+
+/* Sidebar / Listings */
+.locator-sidebar {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border-color);
+  overflow: hidden;
+  height: 100%;
+}
+
+.locator-sidebar-header {
+  padding: 0.85rem 1rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.locator-sidebar-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-main);
+}
+
+.locator-badge-count {
+  background: var(--primary-glow);
+  color: var(--cbmpa-blue);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(37, 99, 235, 0.3);
+}
+
+.locator-listings {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Store Listing Card Item */
+.locator-item {
+  position: relative;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color-light);
+  border-left: 4px solid var(--cbmpa-blue);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.locator-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(37, 99, 235, 0.4);
+  transform: translateY(-1px);
+}
+
+.locator-item.active {
+  background: rgba(37, 99, 235, 0.08);
+  border-color: var(--cbmpa-blue);
+  box-shadow: 0 0 14px rgba(37, 99, 235, 0.25);
+}
+
+.locator-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.locator-item-name {
+  font-family: var(--font-heading);
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.25;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.locator-item-address {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.locator-item-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.2rem;
+  padding-top: 0.35rem;
+  border-top: 1px dashed var(--border-color);
+  font-size: 0.7rem;
+}
+
+.locator-map-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.locator-map-wrapper .interactive-map-frame {
+  width: 100%;
+  height: 100%;
+}
+
+/* Map Style Switcher Pills */
+.map-style-switcher {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  z-index: 10;
+  display: flex;
+  gap: 0.35rem;
+  background: rgba(14, 22, 38, 0.85);
+  backdrop-filter: blur(8px);
+  padding: 0.25rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color-light);
+  box-shadow: var(--shadow-md);
+}
+
+[data-theme="light"] .map-style-switcher {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.btn-style-pill {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.3rem 0.65rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  transition: all 0.15s ease;
+}
+
+.btn-style-pill:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.btn-style-pill.active {
+  background: var(--cbmpa-blue);
+  color: #FFF;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);
+}
+
 .map-view-card {
   position: relative;
   background: var(--bg-card);
@@ -453,7 +654,66 @@
   100% { transform: scale(2.2); opacity: 0; }
 }
 
-/* Leaflet Custom Popups */
+/* Mapbox GL / MapLibre GL Custom Markers & Popups */
+.mapboxgl-marker,
+.maplibregl-marker {
+  cursor: pointer;
+}
+
+.active-selected-pin {
+  pointer-events: none;
+}
+
+.active-selected-pin .marker-pin-wrapper {
+  animation: bouncePin 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes bouncePin {
+  0% { transform: translateY(-20px) scale(0.6); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.mapboxgl-popup,
+.maplibregl-popup {
+  max-width: 320px !important;
+  z-index: 200;
+}
+
+.mapboxgl-popup-content,
+.maplibregl-popup-content {
+  background: var(--bg-card) !important;
+  color: var(--text-main) !important;
+  border: 1px solid var(--border-color-light) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-lg) !important;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.mapboxgl-popup-tip,
+.maplibregl-popup-tip {
+  border-top-color: var(--bg-card) !important;
+}
+
+.mapboxgl-popup-close-button,
+.maplibregl-popup-close-button {
+  font-size: 1.25rem !important;
+  color: var(--text-muted) !important;
+  padding: 0.35rem 0.65rem !important;
+  right: 4px !important;
+  top: 4px !important;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  cursor: pointer !important;
+}
+
+.mapboxgl-popup-close-button:hover,
+.maplibregl-popup-close-button:hover {
+  color: var(--text-main) !important;
+}
+
+/* Leaflet Custom Popups (Fallback) */
 .dgsci-leaflet-popup .leaflet-popup-content-wrapper {
   background: var(--bg-card);
   color: var(--text-main);

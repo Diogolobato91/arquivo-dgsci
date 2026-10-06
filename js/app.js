@@ -802,8 +802,9 @@ class DashboardApp {
         this.updateThemeIcon(themeIcon, next);
 
         this.charts.updateAll(this.store);
-        if (this.geoMap.map) {
-          this.geoMap.initMap();
+        if (this.geoMap) {
+          if (this.geoMap.handleThemeChange) this.geoMap.handleThemeChange(next);
+          if (this.geoMap.map) this.geoMap.map.resize();
         }
       });
     }

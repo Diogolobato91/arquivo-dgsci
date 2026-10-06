@@ -40,6 +40,6 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`DGSCI Dashboard Server rodando em http://localhost:${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`DGSCI Dashboard Server rodando em http://localhost:${PORT} e http://127.0.0.1:${PORT}`);
 });

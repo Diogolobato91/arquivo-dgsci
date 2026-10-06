@@ -10,10 +10,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
   
-  <!-- Leaflet Map CSS & MarkerCluster CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+  <!-- Mapbox GL JS Official Engine (v3.2.0) -->
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css" rel="stylesheet"/>
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.js"></script>
 
   <!-- Chart.js & Plugins -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -348,18 +347,50 @@
           </div>
         </div>
 
-        <!-- Map Container & Legend -->
-        <div class="map-view-card mb-6">
-          <div id="mapContainer" class="interactive-map-frame"></div>
-          
-          <!-- Floating Map Legend -->
-          <div class="map-floating-legend">
-            <div class="legend-title">🚦 Situação de Licenciamento</div>
-            <div class="legend-item"><span class="legend-dot bg-success"></span> Regular / Emitido</div>
-            <div class="legend-item"><span class="legend-dot bg-danger"></span> Vencido / Auto Infração</div>
-            <div class="legend-item"><span class="legend-dot bg-warning"></span> Processo Parado / À Confirmar</div>
-            <div class="legend-item"><span class="legend-dot bg-purple"></span> Sem SISGAT / Inconsistência</div>
-            <div class="legend-item"><span class="legend-dot bg-neutral"></span> Desativado / Baixado</div>
+        <!-- Store Locator Container (Layout Dividido Master-Detail) -->
+        <div class="store-locator-card mb-6">
+          <div class="store-locator-layout">
+            <!-- Painel Lateral: Listagem Interativa de Estabelecimentos (Store Listings) -->
+            <aside class="locator-sidebar">
+              <div class="locator-sidebar-header">
+                <div class="locator-sidebar-title">
+                  <i data-lucide="building-2"></i>
+                  <span>Estabelecimentos no Mapa</span>
+                </div>
+                <span class="locator-badge-count" id="locatorBadgeCount">0</span>
+              </div>
+              <div class="locator-listings" id="locatorListings">
+                <!-- Cards renderizados dinamicamente via JS -->
+              </div>
+            </aside>
+
+            <!-- Painel Principal: O Mapa Interativo WebGL -->
+            <div class="locator-map-wrapper">
+              <div id="mapContainer" class="interactive-map-frame"></div>
+              
+              <!-- Seletor Moderno de Estilos Cartográficos -->
+              <div class="map-style-switcher" id="mapStyleSwitcher">
+                <button class="btn-style-pill active" data-style="voyager" title="Mapa Urbano Detalhado (CartoDB)">
+                  <i data-lucide="map" style="width: 14px; height: 14px;"></i> Urbano
+                </button>
+                <button class="btn-style-pill" data-style="dark" title="Tema Escuro Tático (Dark Matter)">
+                  <i data-lucide="moon" style="width: 14px; height: 14px;"></i> Dark
+                </button>
+                <button class="btn-style-pill" data-style="satellite" title="Satélite HD de Alta Resolução (ESRI)">
+                  <i data-lucide="globe" style="width: 14px; height: 14px;"></i> Satélite
+                </button>
+              </div>
+
+              <!-- Legenda Flutuante -->
+              <div class="map-floating-legend">
+                <div class="legend-title">🚦 Situação de Licenciamento</div>
+                <div class="legend-item"><span class="legend-dot bg-success"></span> Regular / Emitido</div>
+                <div class="legend-item"><span class="legend-dot bg-danger"></span> Vencido / Auto Infração</div>
+                <div class="legend-item"><span class="legend-dot bg-warning"></span> Processo Parado / À Confirmar</div>
+                <div class="legend-item"><span class="legend-dot bg-purple"></span> Sem SISGAT / Inconsistência</div>
+                <div class="legend-item"><span class="legend-dot bg-neutral"></span> Desativado / Baixado</div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -723,6 +754,7 @@
   <script src="js/cbmpa-divisions.js"></script>
   <script src="js/sheets-sync.js"></script>
   <script src="js/data-store.js"></script>
+  <script src="js/geo-map-keys.js"></script>
   <script src="js/geo-map.js"></script>
   <script src="js/charts.js"></script>
   <script src="js/table.js"></script>

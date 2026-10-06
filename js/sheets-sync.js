@@ -312,13 +312,38 @@ class SheetsSyncManager {
   }
 
   extractHouseNumber(rawAddress) {
-    if (!rawAddress) return '';
-    const match = rawAddress.match(/(?:N[º°\.\s]*|NUMERO\s*|N\s+)(\d+[A-Z]?)/i) || 
-                  rawAddress.match(/\b(\d{1,5})\b/);
-    if (match && match[1]) {
-      return match[1];
+    if (!rawAddress) return 'S/N';
+    const raw = rawAddress.trim();
+
+    // 1. Caso explícito de S/N
+    if (/\b(S\/?N|SEM\s+N[UÚ]MERO)\b/i.test(raw) && !/(?:N[º°\.\:\s]*|NUMERO\s*[:\.]?\s*|N\s*[:\.]?\s*)\d+/i.test(raw)) {
+      return 'S/N';
     }
-    return '';
+
+    // 2. Prefixo de número explícito: Nº 123, N: 123, NUMERO 123, N 123
+    const explicitMatch = raw.match(/(?:N[º°\.\:\s]+|NUMERO\s*[:\.]?\s*|\bN\s*[:\.]?\s*)(\d+[A-Z]?)\b/i);
+    if (explicitMatch && explicitMatch[1]) {
+      return explicitMatch[1];
+    }
+
+    // 3. Mascara datas comemorativas e identificadores viários para não extrair "14" de "14 de Março" ou "316" de "BR 316"
+    let masked = raw;
+    masked = masked.replace(/\b(\d{1,2}|1º)\s+DE\s+(?:JANEIRO|FEVEREIRO|MAR[ÇC]O|ABRIL|MAIO|JUNHO|JULHO|AGOSTO|SETEMBRO|OUTUBRO|NOVEMBRO|DEZEMBRO)\b/gi, '__DATE__');
+    masked = masked.replace(/\b(?:KM|ROD|RODOVIA|BR|QD|QUADRA|LINHA|LOTE|BLOCO|BL|CJ|CONJ)\s*[:\.]?\s*\d+\b/gi, '__ROAD__');
+
+    // 4. Número após vírgula (ex: "Rua X, 500")
+    const commaMatch = masked.match(/,\s*(\d{1,5}[A-Z]?)\b/);
+    if (commaMatch && commaMatch[1]) {
+      return commaMatch[1];
+    }
+
+    // 5. Número isolado no final da string
+    const endMatch = masked.match(/\b(\d{1,5}[A-Z]?)\s*$/);
+    if (endMatch && endMatch[1]) {
+      return endMatch[1];
+    }
+
+    return 'S/N';
   }
 
   /**
