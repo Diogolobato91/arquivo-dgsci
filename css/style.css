@@ -153,17 +153,23 @@ html, body {
   width: 44px;
   height: 44px;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, #DC2626, #991B1B);
-  color: #FFF;
+  background: rgba(220, 38, 38, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 14px var(--cbmpa-red-glow);
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.25);
+  transition: transform 0.2s ease;
+}
+
+.brand-badge:hover {
+  transform: scale(1.05);
 }
 
 .brand-icon {
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
 }
 
 .brand-title-row {
