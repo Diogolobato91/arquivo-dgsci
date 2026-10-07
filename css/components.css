@@ -353,10 +353,102 @@
   position: relative;
 }
 
+/* Mobile Segmented Toggle (Mapa vs Lista) */
+.store-locator-mobile-toggle {
+  display: none;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-color);
+  padding: 0.5rem;
+  gap: 0.5rem;
+}
+
+.btn-locator-toggle {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 42px;
+}
+
+.btn-locator-toggle.active {
+  background: var(--primary-glow);
+  color: var(--cbmpa-blue);
+  border-color: var(--cbmpa-blue);
+  box-shadow: 0 0 10px rgba(37, 99, 235, 0.2);
+}
+
+.btn-gps-locate {
+  color: #10B981 !important;
+  font-weight: 700 !important;
+}
+
+.btn-gps-locate:hover {
+  background: rgba(16, 185, 129, 0.15) !important;
+}
+
 @media (max-width: 992px) {
+  .store-locator-mobile-toggle {
+    display: flex;
+  }
+
   .store-locator-layout {
-    grid-template-columns: 1fr;
-    height: auto;
+    display: block !important;
+    height: auto !important;
+    position: relative;
+  }
+
+  /* Padrão Mobile: Mostra o Mapa e esconde a lista */
+  .store-locator-layout .locator-sidebar {
+    display: none;
+    width: 100% !important;
+    height: 520px !important;
+    border-right: none !important;
+  }
+
+  .store-locator-layout .locator-map-wrapper {
+    display: block;
+    width: 100% !important;
+    height: 520px !important;
+    min-height: 420px !important;
+  }
+
+  /* Quando ativado modo Lista */
+  .store-locator-layout.show-list .locator-sidebar {
+    display: flex !important;
+  }
+
+  .store-locator-layout.show-list .locator-map-wrapper {
+    display: none !important;
+  }
+
+  .map-floating-legend {
+    bottom: 10px !important;
+    left: 10px !important;
+    padding: 0.45rem 0.6rem !important;
+    font-size: 0.65rem !important;
+    max-width: 170px !important;
+  }
+
+  .map-style-switcher {
+    top: 8px !important;
+    right: 8px !important;
+    gap: 0.2rem !important;
+    padding: 0.2rem !important;
+  }
+
+  .btn-style-pill {
+    padding: 0.25rem 0.4rem !important;
+    font-size: 0.65rem !important;
   }
 }
 

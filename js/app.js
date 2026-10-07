@@ -38,13 +38,36 @@ class DashboardApp {
   }
 
   setupEventListeners() {
-    // Abas de navegação lateral
-    document.querySelectorAll('.nav-item').forEach(btn => {
+    // Abas de navegação lateral (Desktop) e inferior (Mobile)
+    document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(btn => {
       btn.addEventListener('click', () => {
         const tabId = btn.getAttribute('data-tab');
         this.switchTab(tabId);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       });
     });
+
+    // Alternador Mobile da Store Locator (Ver Mapa vs Ver Lista)
+    const btnMobileShowMap = document.getElementById('btnMobileShowMap');
+    const btnMobileShowList = document.getElementById('btnMobileShowList');
+    const storeLocatorLayout = document.getElementById('storeLocatorLayout');
+
+    if (btnMobileShowMap && btnMobileShowList && storeLocatorLayout) {
+      btnMobileShowMap.addEventListener('click', () => {
+        storeLocatorLayout.classList.remove('show-list');
+        btnMobileShowMap.classList.add('active');
+        btnMobileShowList.classList.remove('active');
+        if (this.geoMap && this.geoMap.map) {
+          setTimeout(() => this.geoMap.map.resize(), 100);
+        }
+      });
+
+      btnMobileShowList.addEventListener('click', () => {
+        storeLocatorLayout.classList.add('show-list');
+        btnMobileShowList.classList.add('active');
+        btnMobileShowMap.classList.remove('active');
+      });
+    }
 
     // Botão Sincronizar Agora
     const btnSync = document.getElementById('btnSyncNow');
@@ -240,7 +263,7 @@ class DashboardApp {
   switchTab(tabId) {
     this.activeTab = tabId;
 
-    document.querySelectorAll('.nav-item').forEach(btn => {
+    document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(btn => {
       btn.classList.toggle('active', btn.getAttribute('data-tab') === tabId);
     });
 
@@ -312,14 +335,14 @@ class DashboardApp {
     const progressText = document.getElementById('loadingProgressText');
     const syncStatus = document.getElementById('liveSyncStatus');
     const syncTime = document.getElementById('lastSyncTime');
-    const urlInput = document.getElementById('settingSheetUrl');
 
     if (overlay && manual) {
       overlay.classList.remove('hidden');
     }
 
     try {
-      const sheetUrl = urlInput ? urlInput.value : '';
+      // Conexão oficial protegida com a base de ocupações DGSCI / CBMPA
+      const sheetUrl = '';
       const data = await this.syncManager.syncFromGoogleSheets(sheetUrl, (msg) => {
         if (progressText) progressText.textContent = msg;
       });

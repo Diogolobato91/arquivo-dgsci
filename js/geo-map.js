@@ -340,12 +340,65 @@ class GeoMapManager {
     const switcher = document.getElementById('mapStyleSwitcher');
     if (!switcher) return;
 
-    switcher.querySelectorAll('.btn-style-pill').forEach(btn => {
+    switcher.querySelectorAll('.btn-style-pill[data-style]').forEach(btn => {
       btn.addEventListener('click', () => {
         let styleKey = btn.getAttribute('data-style');
         if (styleKey === 'voyager') styleKey = 'streets';
         this.setStyle(styleKey);
       });
+    });
+
+    this.setupGpsLocate();
+  }
+
+  setupGpsLocate() {
+    const btnGps = document.getElementById('btnGpsLocate');
+    if (!btnGps) return;
+
+    btnGps.addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        alert('Geolocalização não suportada neste dispositivo.');
+        return;
+      }
+
+      btnGps.innerHTML = '<i data-lucide="loader" class="spin"></i> Localizando...';
+      if (window.lucide) lucide.createIcons();
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          if (this.map) {
+            this.map.flyTo({
+              center: [lng, lat],
+              zoom: 16,
+              pitch: 45,
+              essential: true
+            });
+
+            if (this.userLocationMarker) {
+              this.userLocationMarker.remove();
+            }
+
+            const el = document.createElement('div');
+            el.className = 'user-gps-pulse-marker';
+            el.innerHTML = '<div class="user-gps-dot"></div><div class="user-gps-ring"></div>';
+
+            this.userLocationMarker = new mapboxgl.Marker({ element: el })
+              .setLngLat([lng, lat])
+              .addTo(this.map);
+          }
+          btnGps.innerHTML = '<i data-lucide="crosshair" style="width: 14px; height: 14px;"></i> GPS';
+          if (window.lucide) lucide.createIcons();
+        },
+        (err) => {
+          console.warn('Erro GPS:', err);
+          btnGps.innerHTML = '<i data-lucide="crosshair" style="width: 14px; height: 14px;"></i> GPS';
+          if (window.lucide) lucide.createIcons();
+          alert('Não foi possível obter sua localização GPS. Verifique a permissão de localização do aparelho.');
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
     });
   }
 
@@ -734,6 +787,11 @@ class GeoMapManager {
     // Exibe os primeiros 80 estabelecimentos para máxima fluidez
     const displayList = companies.slice(0, 80);
 
+    const mobileBadge = document.getElementById('locatorMobileBadgeCount');
+    if (mobileBadge) {
+      mobileBadge.textContent = Math.min(companies.length, 80);
+    }
+
     listings.innerHTML = displayList.map((c) => this.renderLocatorCardHtml(c)).join('');
 
     if (window.lucide) lucide.createIcons();
@@ -821,6 +879,19 @@ class GeoMapManager {
         behavior: 'smooth',
         block: 'nearest'
       });
+    }
+
+    // Se estiver no celular e na visualização da lista, volta automaticamente para o mapa
+    const storeLayout = document.getElementById('storeLocatorLayout');
+    const btnShowMap = document.getElementById('btnMobileShowMap');
+    const btnShowList = document.getElementById('btnMobileShowList');
+    if (storeLayout && storeLayout.classList.contains('show-list')) {
+      storeLayout.classList.remove('show-list');
+      if (btnShowMap) btnShowMap.classList.add('active');
+      if (btnShowList) btnShowList.classList.remove('active');
+      setTimeout(() => {
+        if (this.map) this.map.resize();
+      }, 100);
     }
 
     // 2. Remove popup anterior

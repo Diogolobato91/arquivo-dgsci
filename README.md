@@ -26,9 +26,12 @@ Para superar as limitações de ferramentas cartográficas convencionais baseada
 * **Algoritmo de Bairro-Affinity**: Validação matemática de pertinência territorial que previne desvios cartográficos e protege vias com datas históricas (ex: *14 de Março*, *09 de Janeiro*, *25 de Setembro*, *3 de Maio*).
 * **Cache Incremental Estruturado (`geocoded_addresses.json`)**: Ferramenta em Node.js (`tools/geocode-addresses.js`) que processa novos endereços de forma incremental, mantendo o sistema ultrarrápido e sem consumo desnecessário de cotas de API.
 
-### 3. Padrão Interativo Store Locator
+### 3. Padrão Interativo Store Locator & Operações Mobile
 * **Sincronização Bidirecional**: Clique no mapa localiza e destaca instantaneamente o estabelecimento na barra lateral com rolagem suave (`scrollIntoView`).
 * **Busca e Destaque Dinâmico**: Ao selecionar um card na barra lateral, a câmera navega até a coordenada exata com pino luminoso pulsante e abertura do pop-up completo.
+* **Ergonomia Mobile-First**: Barra de navegação inferior tática (`Bottom Bar`), alternador dinâmico de visualização (`[Ver Mapa]` / `[Ver Lista]`) e suporte ao recuo de telas de smartphones modernos.
+* **Geolocalização GPS em Tempo Real**: Botão GPS com anel de pulso luminoso que posiciona o vistoriador instantaneamente no terreno durante operações de fiscalização.
+* **Conexão Protegida**: Endpoint e credenciais sincronizadas em canal seguro, prevenindo alterações acidentais na fonte de dados por operadores de campo.
 
 ---
 
