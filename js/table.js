@@ -10,6 +10,33 @@ class TableManager {
     this.sortCol = 'pasta';
     this.sortAsc = true;
     this.currentFilteredCompanies = [];
+    this.viewMode = 'cards'; // Padrão: Modo Cards para melhor visualização mobile e desktop
+    this._viewModeSetup = false;
+  }
+
+  setupViewModeToggle() {
+    if (this._viewModeSetup) return;
+    const btnCards = document.getElementById('btnViewCards');
+    const btnTable = document.getElementById('btnViewTable');
+    if (!btnCards || !btnTable) return;
+    this._viewModeSetup = true;
+
+    btnCards.addEventListener('click', () => this.setViewMode('cards'));
+    btnTable.addEventListener('click', () => this.setViewMode('table'));
+  }
+
+  setViewMode(mode) {
+    this.viewMode = mode;
+    const btnCards = document.getElementById('btnViewCards');
+    const btnTable = document.getElementById('btnViewTable');
+    const cardsContainer = document.getElementById('companiesCardsContainer');
+    const tableWrapper = document.getElementById('companiesTableWrapper');
+
+    if (btnCards) btnCards.classList.toggle('active', mode === 'cards');
+    if (btnTable) btnTable.classList.toggle('active', mode === 'table');
+
+    if (cardsContainer) cardsContainer.style.display = mode === 'cards' ? 'grid' : 'none';
+    if (tableWrapper) tableWrapper.style.display = mode === 'table' ? 'block' : 'none';
   }
 
   renderCompaniesTable(store, filters = {}) {
@@ -65,6 +92,15 @@ class TableManager {
     const start = (this.currentPage - 1) * this.pageSize;
     const paginated = items.slice(start, start + this.pageSize);
 
+    this.setupViewModeToggle();
+    const cardsContainer = document.getElementById('companiesCardsContainer');
+    const tableWrapper = document.getElementById('companiesTableWrapper');
+
+    if (cardsContainer && tableWrapper) {
+      cardsContainer.style.display = this.viewMode === 'cards' ? 'grid' : 'none';
+      tableWrapper.style.display = this.viewMode === 'table' ? 'block' : 'none';
+    }
+
     if (paginated.length === 0) {
       tbody.innerHTML = `
         <tr>
@@ -74,11 +110,21 @@ class TableManager {
           </td>
         </tr>
       `;
+      if (cardsContainer) {
+        cardsContainer.innerHTML = `
+          <div style="grid-column: 1 / -1; text-align: center; padding: 3rem 1rem; color: var(--text-dim);">
+            <i data-lucide="inbox" style="width: 44px; height: 44px; margin: 0 auto 0.75rem auto; display: block; opacity: 0.6;"></i>
+            <h4 style="color: var(--text-main); margin-bottom: 0.35rem;">Nenhum estabelecimento encontrado</h4>
+            <p style="font-size: 0.85rem;">Tente ajustar os filtros ou os termos de busca acima.</p>
+          </div>
+        `;
+      }
       if (window.lucide) lucide.createIcons();
       this.renderPagination(totalPages);
       return;
     }
 
+    // 1. Renderiza a tabela clássica
     tbody.innerHTML = paginated.map(c => `
       <tr>
         <td><strong>#${this.escape(c.itemNum || c.pasta)}</strong></td>
@@ -110,17 +156,139 @@ class TableManager {
       </tr>
     `).join('');
 
+    // 2. Renderiza os Cards Táticos Modernos
+    if (cardsContainer) {
+      cardsContainer.innerHTML = paginated.map(c => this.renderCompanyCardHtml(c)).join('');
+    }
+
     if (window.lucide) lucide.createIcons();
     this.renderPagination(totalPages);
 
-    tbody.querySelectorAll('.btn-view-company').forEach(btn => {
+    // Eventos compartilhados para Tabela e Cards
+    document.querySelectorAll('.btn-view-company').forEach(btn => {
       btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-id');
         const company = store.companies.find(item => item.id === id);
         if (company) this.openCompanyModal(company, store);
       });
     });
+
+    document.querySelectorAll('.btn-locate-company').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        const company = store.companies.find(item => item.id === id);
+        if (company && window.app) {
+          window.app.switchTab('map');
+          setTimeout(() => {
+            if (window.app.geoMap) {
+              window.app.geoMap.selectStore(company);
+            }
+          }, 300);
+        }
+      });
+    });
+
+    document.querySelectorAll('.btn-print-company-quick').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        const company = store.companies.find(item => item.id === id);
+        if (company && window.app) {
+          window.app.printSingleCompanyDossier(company);
+        }
+      });
+    });
+
+    document.querySelectorAll('.btn-copy-cnpj').forEach(el => {
+      el.addEventListener('click', () => {
+        const cnpj = el.getAttribute('data-cnpj');
+        if (cnpj && cnpj !== 'Sem CNPJ') {
+          navigator.clipboard.writeText(cnpj);
+          if (window.app) window.app.showToast(`CNPJ ${cnpj} copiado para a área de transferência!`, 'success');
+        }
+      });
+    });
   }
+
+  getStatusColor(normalized) {
+    if (normalized === 'REGULAR') return '#10B981';
+    if (normalized === 'VENCIDO') return '#EF4444';
+    if (normalized === 'PARADO') return '#F59E0B';
+    if (normalized === 'SEM_SISGAT') return '#8B5CF6';
+    return '#64748B';
+  }
+
+  getStatusBadgeClass(normalized) {
+    if (normalized === 'REGULAR') return 'success';
+    if (normalized === 'VENCIDO') return 'danger';
+    if (normalized === 'PARADO') return 'warning';
+    if (normalized === 'SEM_SISGAT') return 'purple';
+    return 'neutral';
+  }
+
+  renderCompanyCardHtml(c) {
+    const statusColor = this.getStatusColor(c.normalizedStatus);
+    const borderLeftColor = c.setorHex || statusColor;
+    return `
+      <div class="company-card-tactical" id="company-card-${c.id}" data-company-id="${c.id}" style="border-left: 4px solid ${borderLeftColor};">
+        <div class="company-card-header">
+          <div class="company-card-tags">
+            <span class="tab-tag" style="font-weight: 700;">${this.escape(c.divisao)}</span>
+            <span class="company-card-reg">#${this.escape(c.itemNum || c.pasta)}</span>
+          </div>
+          ${this.renderStatusBadge(c.situacao, c.normalizedStatus)}
+        </div>
+
+        <div class="company-card-body">
+          <h3 class="company-card-title" title="${this.escape(c.razao)}">${this.escape(c.razao)}</h3>
+          
+          <div class="company-card-meta-row">
+            <span class="company-card-cnpj btn-copy-cnpj" data-cnpj="${this.escape(c.cnpj || '')}" title="Clique para copiar CNPJ">
+              <i data-lucide="copy" style="width: 13px; height: 13px;"></i>
+              <code>${this.escape(c.cnpj || 'Sem CNPJ')}</code>
+            </span>
+            ${c.cnae ? `<span class="company-card-cnae" title="CNAE: ${this.escape(c.cnae)}"><i data-lucide="briefcase" style="width: 13px; height: 13px;"></i> ${this.escape(c.cnae)}</span>` : ''}
+          </div>
+
+          <div class="company-card-address">
+            <i data-lucide="map-pin"></i>
+            <span>${this.escape(c.endereco || 'Endereço não informado')} • <strong>${this.escape(c.bairro || 'Belém')}</strong></span>
+          </div>
+
+          <div class="company-card-metrics">
+            <div class="card-metric-pill" style="border-color: ${c.setorHex || 'var(--border-color)'};">
+              <span class="metric-label">Setor</span>
+              <span class="metric-val" style="color: ${c.setorHex || 'var(--text-main)'}; font-weight: 700;">${this.escape(c.setor || '-')}</span>
+            </div>
+
+            <div class="card-metric-pill">
+              <span class="metric-label">Carga Incêndio</span>
+              <span class="metric-val">${c.cargaIncendio > 0 ? `${c.cargaIncendio} MJ/m²` : '-'} (${c.risco || 'BAIXO'})</span>
+            </div>
+
+            <div class="card-metric-pill">
+              <span class="metric-label">Proj. Aprovado</span>
+              <span class="metric-val">${c.projetoAprovado && c.projetoAprovado.toUpperCase().includes('SIM') ? '🟢 SIM' : '⚪ NÃO'}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="company-card-actions">
+          <button class="btn btn-sm btn-outline btn-locate-company" data-id="${c.id}" title="Localizar no Mapa">
+            <i data-lucide="map" style="width: 14px; height: 14px;"></i>
+            <span>Ver no Mapa</span>
+          </button>
+          <button class="btn btn-sm btn-primary btn-view-company" data-id="${c.id}" title="Abrir Ficha Completa">
+            <i data-lucide="eye" style="width: 14px; height: 14px;"></i>
+            <span>Ficha</span>
+          </button>
+          <button class="btn btn-sm btn-outline btn-print-company-quick" data-id="${c.id}" title="Imprimir Dossiê A4">
+            <i data-lucide="printer" style="width: 14px; height: 14px;"></i>
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
 
   renderPagination(totalPages) {
     const container = document.getElementById('companyPagination');

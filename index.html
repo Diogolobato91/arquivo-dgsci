@@ -155,7 +155,7 @@
         <!-- KPI Metrics Grid -->
         <div class="kpi-grid">
           <!-- Card 1: Total -->
-          <div class="kpi-card">
+          <div class="kpi-card border-blue">
             <div class="kpi-icon-box bg-blue">
               <i data-lucide="building"></i>
             </div>
@@ -401,36 +401,36 @@
                 </button>
               </div>
 
-              <!-- Legenda Flutuante -->
-              <div class="map-floating-legend">
-                <div class="legend-title">🚦 Situação de Licenciamento</div>
-                <div class="legend-item"><span class="legend-dot bg-success"></span> Regular / Emitido</div>
-                <div class="legend-item"><span class="legend-dot bg-danger"></span> Vencido / Auto Infração</div>
-                <div class="legend-item"><span class="legend-dot bg-warning"></span> Processo Parado / À Confirmar</div>
-                <div class="legend-item"><span class="legend-dot bg-purple"></span> Sem SISGAT / Inconsistência</div>
-                <div class="legend-item"><span class="legend-dot bg-neutral"></span> Desativado / Baixado</div>
-              </div>
             </div>
           </div>
         </div>
 
         <!-- Section: Unlocated / Incomplete Address Queue -->
-        <div class="data-card">
-          <div class="card-header">
-            <div>
-              <h3 class="card-title text-warning flex-align gap-2">
+        <div class="data-card unlocated-card-section">
+          <div class="card-header unlocated-header">
+            <div class="unlocated-header-info">
+              <h3 class="card-title text-warning flex-align gap-2 unlocated-title">
                 <i data-lucide="map-pin-off"></i>
-                Estabelecimentos com Bairro Não Informado / Endereço Incompleto (<span id="unlocatedCountBadge">0</span>)
+                <span>Cadastros com Endereço Incompleto</span>
+                <span class="unlocated-badge-count" id="unlocatedCountBadge">0</span>
               </h3>
-              <p class="card-desc">Registros que não foram plotados no mapa por falta de bairro ou logradouro na planilha (útil para correção pela equipe)</p>
+              <p class="card-desc">Registros que não puderam ser plotados no mapa por ausência de bairro ou número na planilha.</p>
             </div>
-            <button class="btn btn-sm btn-outline" id="btnExportUnlocatedExcel">
-              <i data-lucide="download" class="btn-icon"></i>
-              <span>Exportar para Correção</span>
-            </button>
+            <div class="unlocated-header-actions">
+              <button class="btn btn-sm btn-outline" id="btnExportUnlocatedExcel">
+                <i data-lucide="download" class="btn-icon"></i>
+                <span>Exportar Excel</span>
+              </button>
+            </div>
           </div>
 
-          <div class="table-responsive">
+          <!-- Visualização em Cards para Mobile -->
+          <div class="unlocated-cards-container" id="unlocatedCardsContainer">
+            <!-- Injetado dinamicamente via JS -->
+          </div>
+
+          <!-- Visualização em Tabela para Desktop -->
+          <div class="table-responsive unlocated-table-wrapper" id="unlocatedTableWrapper">
             <table class="data-table" id="unlocatedTable">
               <thead>
                 <tr>
@@ -501,13 +501,32 @@
         <!-- Table Container -->
         <div class="data-card">
           <div class="table-meta-bar">
-            <span class="table-results-count" id="companyResultsCount">Exibindo 0 estabelecimentos</span>
+            <div class="flex-align gap-3">
+              <span class="table-results-count" id="companyResultsCount">Exibindo 0 estabelecimentos</span>
+              <!-- Seletor de Modo de Visualização: Cards vs Tabela -->
+              <div class="view-mode-toggle" id="companiesViewModeToggle">
+                <button class="btn-view-mode active" data-mode="cards" id="btnViewCards" title="Visualização em Cards / Fichas Táticas">
+                  <i data-lucide="layout-grid" style="width: 14px; height: 14px;"></i>
+                  <span>Cards</span>
+                </button>
+                <button class="btn-view-mode" data-mode="table" id="btnViewTable" title="Visualização em Tabela Detalhada">
+                  <i data-lucide="table" style="width: 14px; height: 14px;"></i>
+                  <span>Tabela</span>
+                </button>
+              </div>
+            </div>
             <div class="pagination-controls" id="companyPagination">
               <!-- Rendered via JS -->
             </div>
           </div>
 
-          <div class="table-responsive">
+          <!-- Modo 1: Grid de Cards Táticos (Melhor visualização mobile e desktop) -->
+          <div class="companies-cards-container" id="companiesCardsContainer">
+            <!-- Injetado dinamicamente via JS -->
+          </div>
+
+          <!-- Modo 2: Tabela Detalhada (Alternável) -->
+          <div class="table-responsive" id="companiesTableWrapper" style="display: none;">
             <table class="data-table" id="companiesTable">
               <thead>
                 <tr>

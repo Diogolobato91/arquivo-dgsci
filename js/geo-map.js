@@ -94,6 +94,23 @@ class GeoMapManager {
       mapboxgl.accessToken = MAPBOX_TOKEN;
     }
 
+    // Delegação global para cliques no botão 'Ver Ficha Completa' do popup do mapa
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.btn-popup-dossier');
+      if (btn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const id = btn.getAttribute('data-id');
+        const store = window.dataStore;
+        const company = (store && store.companies)
+          ? (store.companies.find(c => String(c.id) === String(id)) || this.plottedCompanies.find(c => String(c.id) === String(id)))
+          : null;
+        if (company && window.tableManager) {
+          window.tableManager.openCompanyModal(company, store);
+        }
+      }
+    });
+
     this.loadVerifiedGIS();
   }
 
@@ -923,75 +940,149 @@ class GeoMapManager {
       .addTo(this.map);
 
     // 5. Exibe o Popup
-    this.activePopup = new mapboxgl.Popup({ offset: 25, closeButton: true, className: 'dgsci-mapbox-popup' })
+    const isMobile = window.innerWidth <= 768;
+
+    this.activePopup = new mapboxgl.Popup({
+      offset: 25,
+      closeButton: true,
+      className: 'dgsci-mapbox-popup',
+      maxWidth: isMobile ? '320px' : '380px',
+      anchor: isMobile ? 'bottom' : undefined
+    })
       .setLngLat([company._lng, company._lat])
       .setHTML(this.buildPopupHtml(company))
       .addTo(this.map);
 
-    this.activePopup.on('open', () => {
-      const btn = this.activePopup.getElement().querySelector(`.btn-popup-dossier[data-id="${company.id}"]`);
-      if (btn) {
-        btn.addEventListener('click', () => {
-          if (window.tableManager && window.dataStore) {
-            window.tableManager.openCompanyModal(company, window.dataStore);
+    // Garante inicialização de ícones e evento de clique na ficha tanto diretamente quanto por delegação
+    const popupEl = this.activePopup.getElement();
+    if (popupEl) {
+      if (window.lucide) lucide.createIcons();
+      const dossierBtn = popupEl.querySelector('.btn-popup-dossier');
+      if (dossierBtn) {
+        dossierBtn.onclick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const store = window.dataStore;
+          if (window.tableManager && store) {
+            window.tableManager.openCompanyModal(company, store);
           }
-        });
+        };
       }
-    });
+    }
 
     // 6. Voo suave de câmera (Cinematic flyTo)
+    // No mobile, aplica offset vertical de 95px e pitch suave para posicionar o pino abaixo do centro e garantir que todo o card apareça no visor
     this.map.flyTo({
       center: [company._lng, company._lat],
-      zoom: 16.5,
-      pitch: 45,
+      zoom: isMobile ? 15.6 : 16.5,
+      pitch: isMobile ? 10 : 45,
       bearing: 0,
+      offset: isMobile ? [0, 95] : [0, 0],
       duration: 1000
     });
   }
 
-
   renderUnlocatedTable() {
     const tbody = document.getElementById('unlocatedTableBody');
+    const cardsContainer = document.getElementById('unlocatedCardsContainer');
     const badge = document.getElementById('unlocatedCountBadge');
     if (badge) badge.textContent = this.unlocatedCompanies.length;
 
-    if (!tbody) return;
-
     if (this.unlocatedCompanies.length === 0) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="7" style="text-align: center; padding: 2rem; color: var(--success);">
+      if (tbody) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 2rem; color: var(--success);">
+              <i data-lucide="check-circle-2" style="width: 28px; height: 28px; margin: 0 auto 0.4rem auto; display: block;"></i>
+              Todos os estabelecimentos possuem endereço validado pela base oficial!
+            </td>
+          </tr>
+        `;
+      }
+      if (cardsContainer) {
+        cardsContainer.innerHTML = `
+          <div style="text-align: center; padding: 2rem; color: var(--success);">
             <i data-lucide="check-circle-2" style="width: 28px; height: 28px; margin: 0 auto 0.4rem auto; display: block;"></i>
             Todos os estabelecimentos possuem endereço validado pela base oficial!
-          </td>
-        </tr>
-      `;
+          </div>
+        `;
+      }
       if (window.lucide) lucide.createIcons();
       return;
     }
 
-    tbody.innerHTML = this.unlocatedCompanies.slice(0, 35).map(c => `
-      <tr>
-        <td><strong>#${this.escape(c.itemNum || c.pasta)}</strong></td>
-        <td>
-          <div style="font-weight: 600;">${this.escape(c.razao)}</div>
-          <span style="font-size: 0.72rem; color: var(--text-dim);">${c.divisao} (${c.tab})</span>
-        </td>
-        <td><code>${this.escape(c.cnpj || '-')}</code></td>
-        <td>${window.tableManager ? window.tableManager.renderSectorBadge(c) : (c.setor || '-')}</td>
-        <td style="font-size: 0.78rem; color: var(--text-muted);">${this.escape(c.endereco || '(Endereço em branco na planilha)')}</td>
-        <td>${window.tableManager ? window.tableManager.renderStatusBadge(c.situacao, c.normalizedStatus) : c.situacao}</td>
-        <td>
-          <button class="btn btn-sm btn-outline btn-view-unlocated" data-id="${c.id}" title="Ver Ficha">
-            <i data-lucide="eye" style="width: 14px; height: 14px;"></i>
-          </button>
-        </td>
-      </tr>
-    `).join('');
+    // Renderiza a Tabela Desktop
+    if (tbody) {
+      tbody.innerHTML = this.unlocatedCompanies.slice(0, 50).map(c => `
+        <tr>
+          <td><strong>#${this.escape(c.itemNum || c.pasta)}</strong></td>
+          <td>
+            <div style="font-weight: 600;">${this.escape(c.razao)}</div>
+            <span style="font-size: 0.72rem; color: var(--text-dim);">${this.escape(c.divisao || '-')} (${this.escape(c.tab || '')})</span>
+          </td>
+          <td><code>${this.escape(c.cnpj || '-')}</code></td>
+          <td>${window.tableManager ? window.tableManager.renderSectorBadge(c) : (c.setor || '-')}</td>
+          <td style="font-size: 0.78rem; color: var(--text-muted);">${this.escape(c.endereco || '(Endereço em branco na planilha)')}</td>
+          <td>${window.tableManager ? window.tableManager.renderStatusBadge(c.situacao, c.normalizedStatus) : c.situacao}</td>
+          <td>
+            <button class="btn btn-sm btn-outline btn-view-unlocated" data-id="${c.id}" title="Ver Ficha">
+              <i data-lucide="eye" style="width: 14px; height: 14px;"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // Renderiza Cards Mobile Legíveis e Completos
+    if (cardsContainer) {
+      cardsContainer.innerHTML = this.unlocatedCompanies.slice(0, 50).map(c => {
+        const reason = (!c.bairro || c.bairro === '-') 
+          ? 'Bairro não informado na planilha'
+          : ((!c.endereco || c.endereco === '-') ? 'Logradouro ausente na planilha' : 'Endereço requer validação cadastral');
+
+        const statusBadge = window.tableManager 
+          ? window.tableManager.renderStatusBadge(c.situacao, c.normalizedStatus)
+          : `<span class="popup-status-badge badge-${this.getStatusBadgeClass(c.normalizedStatus)}">${c.situacao}</span>`;
+
+        return `
+          <div class="unlocated-card-item">
+            <div class="unlocated-card-header">
+              <div style="display: flex; align-items: center; gap: 0.4rem;">
+                <span style="font-weight: 700; font-size: 0.8rem; color: var(--cbmpa-gold);">#${this.escape(c.itemNum || c.pasta)}</span>
+                <span class="tab-tag" style="font-size: 0.65rem; padding: 0.1rem 0.35rem;">${this.escape(c.divisao || '-')}</span>
+              </div>
+              <div>${statusBadge}</div>
+            </div>
+
+            <h4 class="unlocated-card-title">${this.escape(c.razao)}</h4>
+
+            <div class="unlocated-card-reason">
+              <i data-lucide="alert-triangle" style="width: 14px; height: 14px; flex-shrink: 0;"></i>
+              <span>${reason}</span>
+            </div>
+
+            <div class="unlocated-card-addr">
+              📍 <strong>Endereço:</strong> ${this.escape(c.endereco || 'Não informado na planilha')}
+            </div>
+
+            <div class="unlocated-card-footer">
+              <div style="display: flex; flex-direction: column; gap: 2px;">
+                <span><strong>CNPJ:</strong> <code>${this.escape(c.cnpj || '-')}</code></span>
+                <span><strong>Setor:</strong> <span style="color: ${c.setorHex || 'var(--text-main)'}; font-weight: 600;">${this.escape(c.setor || '-')}</span></span>
+              </div>
+              <button class="btn btn-sm btn-outline btn-view-unlocated" data-id="${c.id}" title="Ver Ficha">
+                <i data-lucide="eye" style="width: 14px; height: 14px; margin-right: 4px;"></i> Ver Ficha
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
 
     if (window.lucide) lucide.createIcons();
 
-    tbody.querySelectorAll('.btn-view-unlocated').forEach(btn => {
+    // Vincula cliques aos botões Ver Ficha tanto da tabela quanto dos cards
+    document.querySelectorAll('.btn-view-unlocated').forEach(btn => {
       btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-id');
         const company = window.dataStore ? window.dataStore.companies.find(item => item.id === id) : null;
